@@ -43,7 +43,7 @@ class Player():
 			self.pos = 10
 			self.in_jail=True
 			self.jail_time=3
-			print(other_shit[self.pos]['name'])
+			print(special_tiles[self.pos]['name'])
 
 		if prevPos != self.pos:
 			print("{} pass Go".format(self.name))
@@ -61,23 +61,23 @@ class Player():
 		elif self.pos in utility_data:
 			print("{} landed on : {}".format(self.name ,utility_data[self.pos]['name']))
 			#TODO need to add ability to see ownership of properties
-		elif self.pos in other_shit:
-			print("{} landed on : {}".format(self.name ,other_shit[self.pos]['name']))
-			if other_shit[self.pos]['name'] =='jail':
+		elif self.pos in special_tiles:
+			print("{} landed on : {}".format(self.name ,special_tiles[self.pos]['name']))
+			if special_tiles[self.pos]['name'] =='jail':
 				print("{} is visting jail".format(self.name))
-			elif other_shit[self.pos]['name'] == 'income tax':
+			elif special_tiles[self.pos]['name'] == 'income tax':
 				print("{} has been fined $200".format(self.name))
 				#TODO calculate player total asset to fine 10%
 				self.reduceBalance(200)
-			elif other_shit[self.pos]['name']=='go to jail':
+			elif special_tiles[self.pos]['name']=='go to jail':
 				print("{} has been arrested".format(self.name))
 				self.in_jail=True
 				self.pos=10
 				#TODO function to send player to jail
-			elif other_shit[self.pos]['name']=='luxury tax': 
+			elif special_tiles[self.pos]['name']=='luxury tax': 
 				print("{} has been fined $75".format(self.name))
 				self.reduceBalance(75)
-			elif other_shit[self.pos]['name']=='go':
+			elif special_tiles[self.pos]['name']=='go':
 				print("{} collects $400".format(self.name))
 				self.addBalance(400)
 				print(self.balance)
@@ -86,6 +86,9 @@ class Player():
 
 	def	movePlayer(self,dice):
 		self.pos += dice
+		return self.pos
+	
+	def getposition(self):
 		return self.pos
 
 	def	inJail(self):
