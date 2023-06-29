@@ -2,11 +2,12 @@ from property import *
 import random
 from player import *
 
+houses = 32
+hotels = 12
 class Property():
 
     def __init__(self,houses_built,hotels_built,rent_prices,owner,mortgaged):
-        self.card_name = list(property_data.keys()['name'])                       # str
-        self.color = property_data['color']                          # str
+        self.card_name = property_data['name']                       # str        self.color = property_data['color']                          # str
         self.card_cost = property_data['cost']                       # int
         self.house_cost = property_data['houseCost']                 # int
         self.houses_built = houses_built                            # int
@@ -17,7 +18,7 @@ class Property():
         self.mortgaged = mortgaged                                  # bool
     
     def getName(self):
-        return card_name
+        return self.card_name
     
     def getColor(self):
         return self.color
@@ -47,6 +48,13 @@ class Property():
         player.addBalance(self.card_cost)
         self.owner = "Bank"
 
+    #DONE
+    def getOwner(self,pos):
+        if property_data[pos]["owner"] == "Bank":
+            return "Bank"
+        else:
+            return property_data[pos]["owner"]
+    
     def buyProperty(self, player):
         if self.owner == "Bank":
             pass
@@ -79,10 +87,6 @@ class Property():
             player.reduceBalance(self.house_cost)
             self.hotel_built+=1
 
-
-
-
-
 def getChanceDeck(player):
     index=random.randint(1,16)
     card=chance_card[index]['name']
@@ -106,6 +110,30 @@ def getChanceDeck(player):
         player.checkPosition()
     elif index == 5 or index == 6:
         #Advance to the nearest Railroad. 
+        value = player.getPosition()
+        if value < 5:
+            player.teleport(5)
+            if property_data[5]["owner"] == "Bank":
+                pass
+        elif value < 15 :
+            player.teleport(15)
+            if property_data[15]["owner"] == "Bank":
+                pass
+        elif value < 25:
+            player.teleport(25)
+            if property_data[15]["owner"] == "Bank":
+                pass
+        elif value < 35:
+            player.teleport(35)
+            if property_data[15]["owner"] == "Bank":
+                pass
+        else:
+            # only position left is 36 - 4 on the board so player can pass go and land on
+            # Reading Railroad
+            player.teleport(5)
+            player.addBalance(200)
+            if property_data[15]["owner"] == "Bank":
+                pass
         # If unowned, you may buy it from the Bank. If owned, pay owner twice the rental to which they are otherwise entitled
         #TODO most likely have a while loop to keep adding to player postion until they land on a railroad
         # add logic to double the payment on rent
@@ -153,7 +181,6 @@ def getChanceDeck(player):
         pass
     else:
         print("ERROR: Unknown card")
-
 
 def getCommunityDeck(player):
     index=random.randint(1,16)
@@ -217,5 +244,8 @@ def getCommunityDeck(player):
     else:
         print("ERROR: Unknown card")
 
-#player = Player('will', 1500,[],0,False,0,0,False,False,[])
-#getCommunityDeck(player)
+
+#for key,value in property_data.items():
+    #print(key,value)
+
+print(property_data[1]["owner"])
