@@ -59,7 +59,7 @@ def commands(player):
             #trade 
             continue
         elif choice == 'B' or choice == 'b' and choice not in prevChoice:
-            print("{} choose to buy {}".format(player.name,Property.getName(self)))
+            print("{} choose to buy {}".format(player.name,Property.getName()))
             Property.buyProperty(player)
             prevChoice.append(choice)
             #buy property
@@ -109,6 +109,7 @@ def commands(player):
 if __name__ == '__main__':  
     main()
     while True:
+        print(type(total))
         for key, value in total.items():
             print(key, ' : ', value.name)
             commands(value)
