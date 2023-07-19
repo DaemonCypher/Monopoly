@@ -4,89 +4,163 @@ from player import *
 
 houses = 32
 hotels = 12
-class Property():
+# DONE
+def getColor(pos):
+    data_sources = [property_data, railroad_data, utility_data]
+    for source in data_sources:
+        if pos in source:
+            return source[pos]['color']
 
-    def __init__(self,houses_built,hotels_built,rent_prices,owner,mortgaged):
-        self.card_name = property_data['name']                       # str        self.color = property_data['color']                          # str
-        self.card_cost = property_data['cost']                       # int
-        self.house_cost = property_data['houseCost']                 # int
-        self.houses_built = houses_built                            # int
-        self.hotels_built = hotels_built                            # int
-        self.rent_prices = rent_prices                              # int
-        self.mortgage_amt = property_data['mortageValue']            # int
-        self.owner = owner                                          # str
-        self.mortgaged = mortgaged                                  # bool
-    
-    def getName(self):
-        return self.card_name
-    
-    def getColor(self):
-        return self.color
+# DONE
+def isSet(player,color):
+    if color in ["blue", "purple", "white"]:
+        count =2
+    elif color == "black":
+        count =4
+    else:
+        count =3
+    for key, value in player.property_owned.items():
+        if getColor(key) == color:
+            count -=1
+    return count == 0
 
-    def isSet(self,player,color):
-        count = 0
-        if color == "blue" or color == "purple":
-            count = 2
-        else: 
-            count = 3
-        #TODO need a check statment for none color and string
+#DONE
+def processProperty(player, pos, operation):
+    data_sources = [property_data, railroad_data, utility_data]
+    for source in data_sources:
+        if pos in source and pos in player.property_owned:
+            if source[pos]['mortgage'] == (operation == 'mortgage'):
+                print(f"Property already {operation}d")
+            else:
+                change = source[pos]['mortageValue']
+                player.addBalance(change) if operation == 'mortgage' else player.reduceBalance(change*1.10)
+                source[pos]['mortgage'] = (operation == 'mortgage')
+                print(f"{player.name} has {operation}d {source[pos]['name']}")
+                return
+    print(f"Can't {operation} that property.")
 
-        for i in player.property_owned:
-            if getColor(player.property_owned[i]) == color:
-                count -=1
-        if color == 0:
-            return True
+#DONE
+def mortgage(player,pos):
+    processProperty(player, pos, 'mortgage')
 
-    def mortgage(self, player):
-        player.addBalance(self.mortgage_amt)
-        self.mortgaged = True
+#DONE
+def unMortgage(player,pos):
+    processProperty(player, pos, 'unmortgage')
+#TODO: need to figure out the rules for mortgae properties 
+def sellProperty(player,pos):
+    for key, value in player.property_owned.items():
+        pass
+#DONE
+def sellUpgrades(player,pos):
+    global houses
+    global hotels
+    count = property_data[pos]["upgrade"]
+    amount = property_data[pos]["houseCost"]
+    owns = False
+    color = getColor(pos)
+    check = isSet(player,color)
+    propertyName = property_data[pos]["name"]
 
-    def isMortgaged(self):
-        return self.mortgaged
+    for key, value in player.property_owned.items():
+        if pos == key:
+            owns =True
+        
+    if count==5 and owns and check:
+        player.addBalance(amount)
+        property_data[pos]["upgrade"]-=1
+        print("{} have sold an hotel from {}".format(player.name,propertyName))
+        hotels+=1
+    elif count>0 and owns and check:
+        player.addBalance(amount)
+        property_data[pos]["upgrade"]-=1
+        print("{} have sold an house from {}".format(player.name,propertyName))
+        houses+=1
+    elif owns==False:
+        print("{} tried to sell someone else house".format(player.name))
+    elif check == False:
+        print("Can't sell an house/hotel if it is not a set")
+    else:
+        print("ERROR: in sellUpgrades function")
 
-    def sell(self, player):
-        player.addBalance(self.card_cost)
-        self.owner = "Bank"
+#DONE
+def getOwner(pos):
+    data_sources = [property_data, railroad_data, utility_data]
+    for source in data_sources:
+        if pos in source:
+            return source[pos]['owner']
+#DONE
+def buyProperty(player):
+    pos = player.getposition()
+    data_sources = [property_data, railroad_data, utility_data]
+    for source in data_sources:
+        if pos in source and source[pos]['owner'] == 'Bank':
+            if source[pos]['cost'] > player.balance:
+                print("You cannot afford this property at the moment.")
+                return
+            source[pos]['owner'] = player.name
+            player.reduceBalance(source[pos]['cost'])
+            player.property_owned.update({pos:(source[pos]['name'],getColor(pos))})
+            print(f"{player.name} bought {source[pos]['name']}")
+            return
+    print("You cannot buy this property.")
 
-    #DONE
-    def getOwner(self,pos):
-        if property_data[pos]["owner"] == "Bank":
-            return "Bank"
-        else:
-            return property_data[pos]["owner"]
-    
-    def buyProperty(self, player):
-        if self.owner == "Bank":
-            pass
-        else:
-            print("You cannot buy someone else property.")
-            #TODO need to kick out of function
-        if self.card_cost > player.balance:
-            print("You cannot afford this property at the moment.")
-        else:
-            player.property_owned.append(self)
-            player.reduceBalance(self.card_cost)
-            self.owner = player
+# for rail roads and utilites might be better to itterate through
+# player properties and check the tuple for the color black/ white
+# and count how many there are and return the count for set effect
+def checkRailRoads(player):
+    count=0
+    for key, value in player.property_owned.items():
+        if getColor(key) == "black":
+            count+=1
+    return count
 
-    def buildHouse(self, player):
-        if self.house_cost > player.balance:
+def checkUtilites(player):
+    count=0
+    for key, value in player.property_owned.items():
+        if getColor(key) == "white":
+            count+=1
+    return count
+# DONE
+def upgrade(player,pos):
+    global houses
+    global hotels
+    # other contains pos of railroads and utilities
+    other = [5,15,25,35,12,28]
+    colorCheck = isSet(player,getColor(pos))
+    propertyName= property_data[pos]["name"]
+    mortgageCheck = property_data[pos]["mortgage"]
+    upgradeCost= property_data[pos]['houseCost']
+    if pos in property_data and colorCheck and not mortgageCheck and houses>0 and hotels>0:
+        if upgradeCost >player.balance:
             print("You cannnot afford to build a house on this property at the moment.")
-        elif self.houses_built >4:
-            print("You cannot build anymore house on this property at the moment.")
-            print("You can try biilding a hotel on this property.")
-        else:
-            player.hotelOwned+=1
-            player.reduceBalance(self.house_cost)
-            self.houses_built+=1
-
-    def buildHotel(self, player):
-        if self.hotel_built > 1:
-            print("You cannot build anymore hotels on this property.")
-        else:
-            player.hotelOwned +=1
-            player.reduceBalance(self.house_cost)
-            self.hotel_built+=1
-
+        elif property_data[pos]['upgrade'] == 5:
+            print("You already have maximum number of upgrades on this property.")
+        elif property_data[pos]['upgrade'] == 4 and hotels>0:
+            houses +=4
+            hotels -=1
+            property_data[pos]['upgrade'] = 5
+            player.reduceBalance(upgradeCost)
+            print("You have built an Hotel on {}".format(propertyName))
+        elif houses>0:
+            houses -=1
+            property_data[pos]['upgrade'] +=1
+            player.reduceBalance(upgradeCost)
+            print("You have built an house on {}".format(propertyName))
+            print("The number of houses on {} is {}".format(propertyName,property_data[pos]["upgrade"]))
+    elif pos in other:
+        print("Can't upgrade utilities and railroads.")
+    elif colorCheck == False:
+        print("You can't upgrade this property as you don't have a set of the same color properties yet.")
+    elif mortgageCheck == True:
+        print("You can't upgrade this property as the property is mortage.")
+        print("Un-mortage the property and try again.")
+    elif houses<=0:
+        print("You can't upgrade this property at the moment as there are not enough houses")
+    elif hotels<=0:
+        print("You can't upgrade this property at the moment as there are not enough hotels'")
+    else:
+        print("Can't upgrade non properties")
+#TODO
 def getChanceDeck(player):
     index=random.randint(1,16)
     card=chance_card[index]['name']
@@ -181,7 +255,7 @@ def getChanceDeck(player):
         pass
     else:
         print("ERROR: Unknown card")
-
+#TODO
 def getCommunityDeck(player):
     index=random.randint(1,16)
     card=community_card[index]['name']
@@ -243,9 +317,3 @@ def getCommunityDeck(player):
         player.addBalance(100)
     else:
         print("ERROR: Unknown card")
-
-
-#for key,value in property_data.items():
-    #print(key,value)
-
-print(property_data[1]["owner"])
