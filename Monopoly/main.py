@@ -1,18 +1,19 @@
 from random import choice
 from pip import main
 from player import *
-from board import *
 from property import *
 total={}
-state=False
+state=False 
+order= []
 def main():
     print('Welcome to Monopoly')
+
     while True:
         count=int(input('How many players are playing today: '))
         if count<=4 and count>0:
             for i in range(count):
                 name=input("Enter player name: ")
-                total[i]= Player(name, 1500,[],0,False,0,0,False,False,[],0,0)
+                total[i]= Player(name)
             break
         elif count<=0:
             print("You need have more than one player to play")
@@ -23,13 +24,30 @@ def main():
         else:
             print("ERROR: You didnt input a number")
 
-    
-    #TODO need to figure out ordering of player from dice
-    #using a sorting algorithm to determine order and store in a array/list
-    # calling that list for next player turn
-    #while player.bankruptcy_status==False:
-        #pass
-def commands(player):
+    # Roll the dice for each player and store the result in the order list
+    print("Rolling dice for player order")
+    for index, player in total.items():
+        print("{} is rolling their dice".format(player.name))
+        roll, _ = player.rollDice()  # Assuming rollDice returns a tuple with the roll and a boolean for doubles
+        order.append((roll, index))  # Store the roll and the original index
+
+    # Sort the players based on their dice rolls in descending order
+    order.sort(reverse=True, key=lambda x: x[0])
+
+    # Create a new dictionary to store players in the correct order
+    new_total = {}
+    for new_index, (_, original_index) in enumerate(order):
+        new_total[new_index + 1] = total[original_index]
+
+    total.clear()
+    total.update(new_total)
+
+    # Display the order of players
+    print("The order of players based on dice roll is:")
+    for index, player in total.items():
+        print(f"{index}: {player.name}")
+
+def commands(player,properties):
     prevChoice=[]
     while True:
         choice = input('''
@@ -40,32 +58,44 @@ def commands(player):
 		(U)se chance card
 		(E)nd turn
 		(P)urchase house/hotels
-            (C)heck status
+                (C)heck status
 
 		It is your turn, enter what you want to do 
         : ''')
         if "E" in choice or "e" in choice:
             print("{} choose to end turn".format(player.name))
             break
-        elif choice == 'R' or choice == 'r' and choice not in prevChoice:
+        elif choice == 'R' or choice == 'r' and choice not in prevChoice and not player.isInJail():
             #TODO need to add check to not roll dice again
             print("{} choose to roll dice".format(player.name))
-            player.movePlayer(player.rollDice())
-            player.checkPosition()
-            prevChoice.append(choice)
-            continue
+            action = player.rollDice()
+            distance = action[0]
+            canRoll = action[1]
+            if canRoll == True:
+                print("{} rolled a double \n You can choose to roll the dice again.".format(player.name))
+                player.movePlayer(distance)
+                player.checkPosition(properties)
+                continue
+            else:
+                player.movePlayer(distance)
+                player.checkPosition(properties)
+                prevChoice.append(choice)
+                continue
         elif choice == 'T' or choice == 't':
             print("{} choose to trade".format(player.name))
+            # TODO
             #trade 
             continue
         elif choice == 'B' or choice == 'b' and choice not in prevChoice:
-            print("{} choose to buy {}".format(player.name,Property.getName()))
-            Property.buyProperty(player)
-            prevChoice.append(choice)
-            #buy property
+            print("{} choose to buy {}".format(player.name,properties.getName(player.getPosition())))
+            properties.buyProperty(player,player.getPosition())
             continue
         elif choice == 'M' or choice == 'm':
             print("{} choose to mortage property".format(player.name))
+            print(player.property_owned)
+            mortgageName = input('Type the property you wished to mortage: ')
+            amount = properties.mortgage(player,mortgageName)
+            player.addBalance(amount)
             #mortage property_data
             continue
         elif choice == 'U' or choice == 'u':
@@ -75,6 +105,13 @@ def commands(player):
         elif choice == 'P' or choice == 'p':
             print ("{} choose to purchace house/hotels".format(player.name))
             continue
+        elif choice == "Z" or choice == "z":
+
+            # TODO: unmorage option
+            pass
+        elif choice == "Y" or choice == "y":
+            # TODO upgrade property
+            pass
         elif choice == "C" or choice == "c":
             print('''
                 player status:
@@ -89,9 +126,10 @@ def commands(player):
                 Special Cards: {} 
                 Houses Owned: {}
                 Hotels Owned: {}
-            '''. format(player.getBalance(), player.property_owned, player.checkPosition(),
-            player.in_jail, player.railroads_owned, player.doublesCount, player.bankruptcy_status,
-            player.specialCards, player.houseOwned, player.hotelOwned,))
+                Mortage Properties: {}
+            '''. format(player.getBalance(), player.property_owned, properties.getName(player.getPosition()),
+            player.in_jail,player.jail_time, player.railroads_owned, player.doublesCount, player.bankruptcy_status,
+            player.specialCards, player.houseOwned, player.hotelOwned, player.mortageProperty))
             continue
             		
         elif "B" in prevChoice or "b" in prevChoice:
@@ -108,8 +146,8 @@ def commands(player):
 
 if __name__ == '__main__':  
     main()
+    properties = Property()
     while True:
-        print(type(total))
-        for key, value in total.items():
-            print(key, ' : ', value.name)
-            commands(value)
+        for index, player in total.items():
+            print(index, ' : ', player.name)
+            commands(player,properties)

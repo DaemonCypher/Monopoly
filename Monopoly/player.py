@@ -3,19 +3,21 @@ import random
 from property import*
 doubleCount = 0
 class Player():
-	def __init__(self,name,balance,property_owned, pos, in_jail,jail_time ,railroads_owned, doublesCount, bankruptcy_status,specialCards,houseOwned,hotelOwned):
-		self.name=name								#String
-		self.balance=balance						#Int
-		self.property_owned=property_owned			#Array/list
-		self.pos=pos								#Int
-		self.in_jail=in_jail						#Bool
-		self.jail_time=jail_time					#Int
-		self.railroads_owned=railroads_owned		#Int
-		self.doublesCount=doublesCount				#Int
-		self.bankruptcy_status=bankruptcy_status	#Bool
-		self.specialCards=specialCards				#bool has the card or doesnt(get out of jail)
-		self.houseOwned = houseOwned				#Int
-		self.hotelOwned = hotelOwned				#Int		
+	def __init__(self,name):
+		self.name=name							#String
+		self.balance=1500						#Int
+		self.property_owned=[]					#Tuple List
+		self.pos=0								#Int
+		self.in_jail= False						#Bool
+		self.jail_time=0						#Int
+		self.railroads_owned=0					#Int
+		self.doublesCount=	0					#Int
+		self.bankruptcy_status=False			#Bool
+		self.specialCards=[]					#Bool has the card or doesnt(get out of jail)
+		self.houseOwned = 0						#Int
+		self.hotelOwned = 0						#Int	
+		self.mortageProperty = []				#Tuple List	
+	
 	#done
 	def rollDice(self):
 		dice1 = random.randint(1,6)
@@ -24,18 +26,21 @@ class Player():
 		if dice1 == dice2:
 			self.doublesCount += 1
 			print("Rolled a double: {}, {}".format(dice1, dice2))
-			print("You have rolled {} so far. Becareful to not go too fast.".format(doubleCount))
-			return total
+			print("You have rolled {} so far. Becareful to not go too fast.".format(self.doublesCount))
+			return (total , True)
 		elif self.doublesCount == 3:
 			self.doublesCount = 0
 			print("Slow down. You have rolled too many doubles in a row.")
-			return total
-
+			return (total, False)
 		else:
+			self.doublesCount = 0
 			print("Dice rolled: {}, {} " .format(dice1,dice2))
-			return total
-	
-	def checkPosition(self):
+			return (total, False)
+
+	# BUG when checking position at the start of the game 
+	# player can generate infite money on go
+
+	def checkPosition(self, properties):
 		prevPos = self.pos
 		self.pos = self.pos %40
 		
@@ -49,58 +54,37 @@ class Player():
 			print("{} pass Go".format(self.name))
 			print("{} collects $200".format(self.name))
 			self.addBalance(200)
-			print(self.balance)
+			
 
-		#TODO need to add ability to see mortgage and ownership of properties
-		if self.pos in property_data:
-			print("{} landed on : {}".format(self.name ,property_data[self.pos]['name']))
-			#TODO need to add ability to see ownership of properties
-		elif self.pos in railroad_data:
-			print("{} landed on : {}".format(self.name ,railroad_data[self.pos]['name']))
-			#TODO need to add ability to see ownership of properties
-		elif self.pos in utility_data:
-			print("{} landed on : {}".format(self.name ,utility_data[self.pos]['name']))
-			#TODO need to add ability to see ownership of properties
-		elif self.pos in special_tiles:
-			print("{} landed on : {}".format(self.name ,special_tiles[self.pos]['name']))
-			if special_tiles[self.pos]['name'] =='jail':
-				print("{} is visting jail".format(self.name))
-			elif special_tiles[self.pos]['name'] == 'income tax':
-				print("{} has been fined $200".format(self.name))
-				#TODO calculate player total asset to fine 10%
-				self.reduceBalance(200)
-			elif special_tiles[self.pos]['name']=='go to jail':
-				print("{} has been arrested".format(self.name))
-				self.in_jail=True
-				self.pos=10
-				#TODO function to send player to jail
-			elif special_tiles[self.pos]['name']=='luxury tax': 
-				print("{} has been fined $75".format(self.name))
-				self.reduceBalance(75)
-			elif special_tiles[self.pos]['name']=='go':
-				print("{} collects $400".format(self.name))
-				self.addBalance(400)
-				print(self.balance)
-		else:
-			raise KeyError("ERROR: Position not found")
-
+		data = properties.propertyData(self.pos)
+		
+		print("{} landed on : {}".format(self.name ,data['name']))
+		
+		if data['name'] =='jail':
+			print("{} is visting jail".format(self.name))
+		elif data['name']  == 'income tax':
+			print("{} has been fined $200".format(self.name))
+			#TODO calculate player total asset to fine 10%
+			self.reduceBalance(200)
+		elif data['name'] =='go to jail':
+			print("{} has been arrested".format(self.name))
+			self.in_jail=True
+			self.pos=10
+		elif data['name'] =='luxury tax': 
+			print("{} has been fined $75".format(self.name))
+			self.reduceBalance(75)
+		elif data['name'] =='go':
+			print("{} collects $400".format(self.name))
+			self.addBalance(400)
+		
+ 
 	def	movePlayer(self,dice):
 		self.pos += dice
 		return self.pos
 	
-	def getposition(self):
+	def getPosition(self):
 		return self.pos
-
-	def	inJail(self):
-		if self.in_jail==True:
-			self.jail_time-=1
-		elif specialCards=='getout of jail' in self.specialCards:
-			pass
-		#TODO get out of free jail card check
-		if self.jail_time<=0:
-			self.in_jail=False
 		
-
 	def teleportPlayer(self, amount):
 		self.pos=amount
 		return self.pos
@@ -113,30 +97,37 @@ class Player():
 		return self.balance
 
 	def isInJail(self):
-		if self.in_jail:
+		if self.in_jail == False:
+			return self.in_jail
+		else:
 			print("You are in jail")
-		elif self.specialCards=='getout of jail' in self.specialCards:
-			#TODO ask if player want to use get out of jail card
-			pass
+		if self.specialCards=='Get Out of Jail Free' in self.specialCards:
+			response =input("You have a 'Get Out of Jail Free' card would you like to use it (Y,N): ")
+			if response == 'Y'or 'y':
+				self.in_jail = False
+				print("You are free from jail!")
 		elif self.jail_time<=0:
 			self.in_jail = False
+			print("You are free from jail!")
 		else:
-			player.rollDice()
+			self.rollDice()
 			if doubleCount>=1:
 				self.in_jail = False
 				print("You are free from jail!")
 			else:
-				self.jail_time-=1			
+				self.jail_time-=1		
+		return self.in_jail
 
 	def reduceBalance(self,amount):
 		if self.balance < amount:
 			print("{} does not have sufficient balance",self.name)
 
-		#TODO need to add player action to sell and mortage shit
-		self.balance -= amount
-		return self.balance
-
 	def bankrupt(self):
 		self.balance=0
 		#TODO need to remove all player asset and give back to bankruk
-		
+	def canBuy(self,amount):
+		if self.balance -amount < 0:
+			return False
+		return True
+	def addProperty(self,name,pos):
+		self.property_owned.append((name,pos))
